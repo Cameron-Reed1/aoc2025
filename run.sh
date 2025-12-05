@@ -40,12 +40,12 @@ fi
 
 if [ "$part" = "both" ]; then
     echo -e "\x1b[1;4mPart 1\x1b[0m"
-    zig build run -- --part1 < ./input
+    zig build run -Doptimize=ReleaseFast -- --part1 < ./input
 
     echo -e "\n\x1b[1;4mPart 2\x1b[0m"
-    zig build run -- --part2 < ./input
+    zig build run -Doptimize=ReleaseFast -- --part2 < ./input
 else
-    zig build run -- "$part" < ./input
+    zig build run -Doptimize=ReleaseFast -- "$part" < ./input
 fi
 
 popd > /dev/null
