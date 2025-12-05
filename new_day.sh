@@ -7,7 +7,7 @@ if [ -z "$1" ]; then
 fi
 
 
-basedir=$(dirname $(realpath $0))
+basedir=$(dirname "$(realpath "$0"))"
 name=$(printf "day%02d" "$1")
 
 
