@@ -91,9 +91,111 @@ fn part1(allocator: std.mem.Allocator, stdin: *std.Io.Reader) !u64{
 
 
 fn part2(allocator: std.mem.Allocator, stdin: *std.Io.Reader) !u64 {
-    _ = allocator;
-    _ = stdin;
-    return 0;
+    var line_len: usize = 0;
+    var text: std.ArrayListUnmanaged(u8) = .empty;
+    defer text.deinit(allocator);
+
+    while (true) {
+        const line = try stdin.takeDelimiter('\n') orelse break;
+        if (line_len == 0) {
+            line_len = line.len;
+        } else if (line.len != line_len) {
+            return ParseError.InvalidInput;
+        }
+
+        try text.appendSlice(allocator, line);
+    }
+
+    const ops_line_index: usize = text.items.len - line_len;
+    const height: usize = ops_line_index / line_len;
+
+    var problems: std.ArrayListUnmanaged(Problem) = .empty;
+    defer {
+        for (problems.items) |problem| {
+            allocator.free(problem.numbers);
+        }
+        problems.deinit(allocator);
+    }
+
+    var numbers: std.ArrayListUnmanaged(u64) = .empty;
+    defer numbers.deinit(allocator);
+
+    var p_start_index: usize = 0;
+    for (0..line_len) |x| {
+        var num_text: std.ArrayListUnmanaged(u8) = .empty;
+        defer num_text.deinit(allocator);
+
+        for (0..height) |y| {
+            const c = text.items[x + (y * line_len)];
+            switch (c) {
+                ' ' => continue,
+                '0'...'9' => try num_text.append(allocator, c),
+                else => return ParseError.UnexpectedCharacter,
+            }
+        }
+
+        if (num_text.items.len == 0) {
+            var op: ?Operation = null;
+            for (p_start_index..x) |i| {
+                op = switch (text.items[ops_line_index + i]) {
+                    '*' => .mul,
+                    '+' => .add,
+                    ' ' => continue,
+                    else => return ParseError.UnexpectedCharacter,
+                };
+                break;
+            }
+
+            if (op == null) {
+                return ParseError.InvalidInput;
+            }
+
+            const p = Problem{
+                .operation = op.?,
+                .numbers = try numbers.toOwnedSlice(allocator),
+            };
+            errdefer allocator.free(p.numbers);
+
+            try problems.append(allocator, p);
+
+            p_start_index = x + 1;
+        } else {
+            const n = try std.fmt.parseInt(u64, num_text.items, 10);
+            try numbers.append(allocator, n);
+        }
+    }
+
+    // I really don't like this
+    var op: ?Operation = null;
+    for (p_start_index..line_len) |i| {
+        op = switch (text.items[ops_line_index + i]) {
+            '*' => .mul,
+            '+' => .add,
+            ' ' => continue,
+            else => return ParseError.UnexpectedCharacter,
+        };
+        break;
+    }
+
+    if (op == null) {
+        return ParseError.InvalidInput;
+    }
+
+    const p = Problem{
+        .operation = op.?,
+        .numbers = try numbers.toOwnedSlice(allocator),
+    };
+    {
+        errdefer allocator.free(p.numbers);
+        try problems.append(allocator, p);
+    }
+
+    var grand_total: u64 = 0;
+    for (problems.items) |problem| {
+        grand_total += problem.solve();
+    }
+
+    return grand_total;
 }
 
 
