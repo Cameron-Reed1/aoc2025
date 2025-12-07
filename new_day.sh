@@ -21,5 +21,16 @@ if [ -d "$basedir/$name" ]; then
     exit 0
 fi
 
+
 cp -r "$basedir/base" "$basedir/$name"
 sed -i "s/PROJECT_NAME/$name/" "$basedir/$name/build.zig"
+
+
+start_time=$(date -d "2025-12-${1}T0:00 UTC-5" +'%s')
+current_time=$(date +'%s')
+if [ -f "$basedir/cookies.env" ] && [ "$current_time" -gt "$start_time" ]; then
+    source "$basedir/cookies.env"
+    if [ -n "$AOC_COOKIE" ]; then
+        wget --no-cookies --header "Cookie: session=$AOC_COOKIE" "https://adventofcode.com/2025/day/$1/input" -O "$basedir/$name/input"
+    fi
+fi
